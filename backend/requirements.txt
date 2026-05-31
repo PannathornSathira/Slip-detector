@@ -5,3 +5,4 @@ easyocr
 thefuzz
 pandas
 opencv-python-headless
+python-Levenshtein
