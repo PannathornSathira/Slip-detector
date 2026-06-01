@@ -1,8 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Bug, ChevronDown, ChevronUp } from 'lucide-react';
+
+const DEFAULT_CATEGORIES = [
+  "Dining",
+  "Groceries",
+  "Transport",
+  "Credit Card Settlement",
+  "Personal Transfer",
+  "General Expense",
+  "Utilities",
+  "Uncategorized"
+];
 
 const DataTable = ({ data, setData, onUpdateCategory }) => {
   const [expandedRows, setExpandedRows] = useState({});
+  const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    const fetchCustomCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/categories/');
+        const customCats = Object.values(response.data);
+        const combined = Array.from(new Set([...DEFAULT_CATEGORIES, ...customCats]));
+        setAvailableCategories(combined);
+      } catch (err) {
+        console.error("Failed to load categories in DataTable", err);
+      }
+    };
+    fetchCustomCategories();
+  }, [data]);
 
   const toggleRow = (index) => {
     setExpandedRows(prev => ({ ...prev, [index]: !prev[index] }));
@@ -12,6 +39,30 @@ const DataTable = ({ data, setData, onUpdateCategory }) => {
     const newData = [...data];
     newData[index][field] = field === 'amount' ? parseFloat(value) || 0 : value;
     setData(newData);
+  };
+
+  const handleCategoryChange = (idx, receiver, value) => {
+    if (value === "__NEW_CATEGORY__") {
+      const customCat = window.prompt("Enter new category name:");
+      if (customCat && customCat.trim()) {
+        const trimmed = customCat.trim();
+        setAvailableCategories(prev => {
+          if (!prev.includes(trimmed)) {
+            return [...prev, trimmed];
+          }
+          return prev;
+        });
+        handleChange(idx, 'category', trimmed);
+        if (onUpdateCategory) {
+          onUpdateCategory(receiver, trimmed);
+        }
+      }
+    } else {
+      handleChange(idx, 'category', value);
+      if (onUpdateCategory) {
+        onUpdateCategory(receiver, value);
+      }
+    }
   };
 
   if (data.length === 0) return null;
@@ -49,18 +100,18 @@ const DataTable = ({ data, setData, onUpdateCategory }) => {
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <input 
-                    type="text" 
-                    value={row.category || ''} 
-                    onChange={(e) => handleChange(idx, 'category', e.target.value)}
-                    onBlur={() => onUpdateCategory && onUpdateCategory(row.receiver, row.category)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.target.blur();
-                      }
-                    }}
-                    className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-1 w-full"
-                  />
+                  <select 
+                    value={row.category || 'Uncategorized'} 
+                    onChange={(e) => handleCategoryChange(idx, row.receiver, e.target.value)}
+                    className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-1 w-full bg-white"
+                  >
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__NEW_CATEGORY__">+ Create new category...</option>
+                  </select>
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap text-right">

@@ -1,0 +1,46 @@
+# Environment Secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+frontend/.env
+
+# Temporary Slip Uploads
+uploads/
+backend/uploads/
+
+# Python caching & environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node/React Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+build/
+frontend/build/
+.eslintcache
+
+# OS Files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

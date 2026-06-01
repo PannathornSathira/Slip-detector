@@ -66,6 +66,26 @@ Prerequisites: Python 3.10+ (using a Conda environment is recommended).
 
 ---
 
+## LLM Configuration & Auto-Categorization
+
+This application supports automatic categorization for unseen/new receiver names using a hybrid approach:
+1. **Local Heuristics**: Instantly detects common prefixes (like นาย, นาง, น.ส., Mr., Mrs.) to categorize as `Personal Transfer`, and matches keywords for categories like `Dining`, `Groceries`, `Transport`, `Utilities`, and `Credit Card Settlement`.
+2. **Cloud LLM APIs (Gemini & OpenAI)**: To improve accuracy for arbitrary names, you can enable either Google's Gemini API or OpenAI's API. Since it runs in the cloud, it uses 0 MB of local RAM.
+
+To set up:
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Edit `backend/.env` and configure your API keys:
+   ```env
+   LLM_PROVIDER=gemini # Use 'gemini' or 'openai'
+   GEMINI_API_KEY=your-gemini-key
+   OPENAI_API_KEY=your-openai-key
+   ```
+3. Restart the backend server. 
+
+Successful LLM classifications are automatically cached in the local configuration file to avoid duplicate API charges.
+
+---
+
 ## Category Configurations
 
 Categories are persisted locally on the backend in `backend/config/categories.json`. The file updates dynamically in real-time when label mapping changes are submitted in the frontend **Manage Labels** dashboard.
