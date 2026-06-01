@@ -1,8 +1,8 @@
-fastapi
-uvicorn
-python-multipart
-easyocr
-thefuzz
-pandas
-opencv-python-headless
-python-Levenshtein
+fastapi==0.136.1
+uvicorn==0.46.0
+python-multipart==0.0.27
+easyocr==1.7.2
+thefuzz==0.22.1
+pandas==2.3.3
+opencv-python-headless==4.12.0
+python-Levenshtein==0.27.3

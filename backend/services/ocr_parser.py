@@ -7,7 +7,7 @@ from thefuzz import fuzz
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 class SlipParser:
-    ANCHOR_KEYWORDS = ["ไปยัง", "รายการโอน", "ถุงเงิน", "ผู้รับ", "รับเงิน", "TOPS", "ร้านค้า", "โอนเงินให้"]
+    ANCHOR_KEYWORDS = ["ไปยัง", "รายการโอน", "ถุงเงิน", "ผู้รับ", "รับเงิน", "TOPS", "ร้านค้า", "โอนเงินให้", "ไปที่", "เข้าบัญชี", "ผู้รับโอน"]
 
     def __init__(self):
         logging.info("Initializing EasyOCR...")
@@ -132,13 +132,16 @@ class SlipParser:
         # Sort by top-down, left-right
         flat_items.sort(key=lambda i: (i['y_center'], i['x_center']))
         
-        # 1. Fuzzy match anchors
+        # 1. First, try fuzzy matching anchors
         for idx, item in enumerate(flat_items):
             text = item['text'].replace(" ", "")
             
+            # Skip transaction header text containing "สำเร็จ" as anchor
+            if "สำเร็จ" in text:
+                continue
+                
             is_anchor = False
             for anchor in self.ANCHOR_KEYWORDS:
-                # Use fuzzy match (ratio > 80 is a good match)
                 if fuzz.partial_ratio(anchor, text) > 80:
                     is_anchor = True
                     # Clean the anchor from the text if it's mixed
@@ -146,7 +149,7 @@ class SlipParser:
                     for a in self.ANCHOR_KEYWORDS:
                         clean_text = clean_text.replace(a, "").strip()
                     
-                    if len(clean_text) > 3: # If there's still a decent name left in the same block
+                    if len(clean_text) > 3:
                         return clean_text
                     break
             
@@ -167,22 +170,55 @@ class SlipParser:
                         candidates.append(other)
                 
                 if candidates:
-                    # Sort candidates: prioritize same line right, then directly below
                     candidates.sort(key=lambda c: (abs(c['y_center'] - item_y), c['x_center']))
-                    # Return the first viable candidate
                     for c in candidates:
                         candidate_text = c['text'].strip()
-                        # Avoid matching another anchor word as the receiver
                         if len(candidate_text) > 2 and not any(fuzz.partial_ratio(a, candidate_text) > 80 for a in self.ANCHOR_KEYWORDS):
-                            # Remove non-alphabet prefix like colon or dash if present
                             clean_candidate = re.sub(r'^[:\-\s]+', '', candidate_text)
-                            if len(clean_candidate) > 2:
+                            # Skip headers or common noise
+                            if len(clean_candidate) > 2 and not any(h in clean_candidate for h in ["สำเร็จ", "โอนเงิน", "จ่ายบิล"]):
                                 return clean_candidate
 
-        # 2. If no anchor found, try finding generic merchant names or fallback
+        # 2. Fallback for K+ templates (which do not have clear text anchors)
+        # We can check if we have a K+ layout: sender is at y < 450, receiver is at 450 <= y <= 750.
+        # Let's collect all candidate text in the receiver y-range: 480 to 680
+        receiver_candidates = []
+        for item in flat_items:
+            y = item['y_center']
+            text = item['text'].strip()
+            
+            # Filter receiver y-range
+            if 480 <= y <= 670:
+                # Skip numeric accounts/references or short noise
+                if re.match(r'^[\d\-xX\s]+$', text):
+                    continue
+                # Skip bank names/logos like ธ.กสิกรไทย, K+, etc.
+                if any(k in text for k in ["กสิกร", "SCB", "scb", "ธ.", "PromptPay", "prompt", "pay"]):
+                    continue
+                # Skip header keywords
+                if any(h in text for h in ["สำเร็จ", "โอนเงิน", "จ่ายบิล", "ชำระเงิน"]):
+                    continue
+                # Skip very short text
+                if len(text) <= 1:
+                    continue
+                receiver_candidates.append(text)
+                
+        if receiver_candidates:
+            filtered_candidates = []
+            for c in receiver_candidates:
+                clean_c = re.sub(r'^[:\-\s\.]+', '', c).strip()
+                if len(clean_c) > 1:
+                    filtered_candidates.append(clean_c)
+            if filtered_candidates:
+                return " ".join(filtered_candidates)
+
+        # 3. Traditional fallback: finding name prefixes
         name_prefixes = ["นาย", "นาง", "น.ส.", "MR.", "MISS", "MS.", "บจก", "บริษัท"]
         for item in flat_items:
             text = item['text'].strip()
+            # If it's in the sender area, skip it!
+            if item['y_center'] < 400:
+                continue
             for prefix in name_prefixes:
                 if text.startswith(prefix):
                     return text

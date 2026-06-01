@@ -1,7 +1,8 @@
 import os
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
+from pydantic import BaseModel
 import shutil
 
 from services.ocr_parser import SlipParser
@@ -56,6 +57,29 @@ async def upload_slips(files: List[UploadFile] = File(...)):
             
     return {"data": results}
 
+class CategoryUpdate(BaseModel):
+    receiver: str
+    category: str
+
+@app.get("/categories/")
+async def get_categories():
+    return categorizer.get_all_mappings()
+
+@app.post("/update-category/")
+async def update_category(data: CategoryUpdate):
+    success = categorizer.update_mapping(data.receiver, data.category)
+    if not success:
+        raise HTTPException(status_code=400, detail="Invalid receiver name")
+    return {"status": "success"}
+
+@app.delete("/categories/")
+async def delete_category(receiver: str):
+    success = categorizer.delete_mapping(receiver)
+    if not success:
+        raise HTTPException(status_code=404, detail="Receiver mapping not found")
+    return {"status": "success"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

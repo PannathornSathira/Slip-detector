@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bug, ChevronDown, ChevronUp } from 'lucide-react';
 
-const DataTable = ({ data, setData }) => {
+const DataTable = ({ data, setData, onUpdateCategory }) => {
   const [expandedRows, setExpandedRows] = useState({});
 
   const toggleRow = (index) => {
@@ -35,7 +35,7 @@ const DataTable = ({ data, setData }) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input 
                     type="text" 
-                    value={row.date} 
+                    value={row.date || ''} 
                     onChange={(e) => handleChange(idx, 'date', e.target.value)}
                     className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-1 w-full"
                   />
@@ -43,7 +43,7 @@ const DataTable = ({ data, setData }) => {
                 <td className="px-6 py-4">
                   <input 
                     type="text" 
-                    value={row.receiver} 
+                    value={row.receiver || ''} 
                     onChange={(e) => handleChange(idx, 'receiver', e.target.value)}
                     className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-1 w-full"
                   />
@@ -51,11 +51,18 @@ const DataTable = ({ data, setData }) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input 
                     type="text" 
-                    value={row.category} 
+                    value={row.category || ''} 
                     onChange={(e) => handleChange(idx, 'category', e.target.value)}
+                    onBlur={() => onUpdateCategory && onUpdateCategory(row.receiver, row.category)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.target.blur();
+                      }
+                    }}
                     className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-1 w-full"
                   />
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <input 
                     type="number" 

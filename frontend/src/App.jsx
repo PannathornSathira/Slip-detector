@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import UploadPage from './pages/UploadPage';
 import DashboardPage from './pages/DashboardPage';
-import { Wallet, UploadCloud, PieChart } from 'lucide-react';
+import CategoriesPage from './pages/CategoriesPage';
+import { Wallet, UploadCloud, PieChart, Tag } from 'lucide-react';
 
 const NavLink = ({ to, icon: Icon, children }) => {
   const location = useLocation();
@@ -48,6 +49,7 @@ function AppContent() {
           <nav className="flex space-x-2">
             <NavLink to="/" icon={UploadCloud}>Upload & Edit</NavLink>
             <NavLink to="/dashboard" icon={PieChart}>Dashboard</NavLink>
+            <NavLink to="/categories" icon={Tag}>Manage Labels</NavLink>
           </nav>
         </header>
 
@@ -55,7 +57,9 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<UploadPage data={data} setData={setData} />} />
           <Route path="/dashboard" element={<DashboardPage data={data} />} />
+          <Route path="/categories" element={<CategoriesPage />} />
         </Routes>
+
 
       </div>
     </div>
