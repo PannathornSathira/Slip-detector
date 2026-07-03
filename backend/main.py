@@ -7,6 +7,7 @@ import shutil
 
 from services.ocr_parser import SlipParser
 from services.categorizer import Categorizer
+from services.processor_factory import ProcessorFactory
 
 app = FastAPI(title="Slip OCR API")
 
@@ -19,7 +20,6 @@ app.add_middleware(
 )
 
 # Initialize services
-parser = SlipParser()
 categorizer = Categorizer()
 
 UPLOAD_DIR = "uploads"
@@ -36,13 +36,16 @@ async def upload_slips(files: List[UploadFile] = File(...)):
             shutil.copyfileobj(file.file, buffer)
             
         # Extract data (returns a list of records)
-        parsed_records = parser.process_image(file_path)
+        mode = os.getenv("PROCESSING_MODE", "lite")
+        processor = ProcessorFactory.get(mode)
+        parsed_records = processor.process_image(file_path)
         
-        if parsed_records:
+        if parsed_records is not None:
             for record in parsed_records:
-                # Categorize based on receiver
-                category = categorizer.categorize(record.get("receiver", ""))
-                record["category"] = category
+                # If processor didn't assign category (like Lite mode), use categorizer
+                if "category" not in record or record["category"] == "Uncategorized" or not record["category"]:
+                    category = categorizer.categorize(record.get("receiver", ""))
+                    record["category"] = category
                 record["filename"] = file.filename
                 results.append(record)
         else:
@@ -77,6 +80,26 @@ async def delete_category(receiver: str):
     success = categorizer.delete_mapping(receiver)
     if not success:
         raise HTTPException(status_code=404, detail="Receiver mapping not found")
+    return {"status": "success"}
+
+class SettingsUpdate(BaseModel):
+    processing_mode: str = None
+    llm_provider: str = None
+
+@app.get("/settings/")
+async def get_settings():
+    return {
+        "processing_mode": os.getenv("PROCESSING_MODE", "lite"),
+        "llm_provider": os.getenv("LLM_PROVIDER", "local")
+    }
+
+@app.post("/settings/")
+async def update_settings(data: SettingsUpdate):
+    if data.processing_mode:
+        os.environ["PROCESSING_MODE"] = data.processing_mode
+    if data.llm_provider:
+        os.environ["LLM_PROVIDER"] = data.llm_provider
+        categorizer.llm_provider = data.llm_provider
     return {"status": "success"}
 
 if __name__ == "__main__":

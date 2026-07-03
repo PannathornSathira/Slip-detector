@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bug, ChevronDown, ChevronUp } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const DEFAULT_CATEGORIES = [
   "Dining",
@@ -20,7 +21,7 @@ const DataTable = ({ data, setData, onUpdateCategory }) => {
   useEffect(() => {
     const fetchCustomCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/categories/');
+        const response = await axios.get(`${API_BASE_URL}/categories/`);
         const customCats = Object.values(response.data);
         const combined = Array.from(new Set([...DEFAULT_CATEGORIES, ...customCats]));
         setAvailableCategories(combined);

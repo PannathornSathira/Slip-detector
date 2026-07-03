@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search, Plus, Trash2, Edit2, Save, X, Tag, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const CategoriesPage = () => {
   const [categories, setCategories] = useState({});
@@ -19,7 +20,7 @@ const CategoriesPage = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/categories/');
+      const response = await axios.get(`${API_BASE_URL}/categories/`);
       setCategories(response.data);
       setError(null);
     } catch (err) {
@@ -35,7 +36,7 @@ const CategoriesPage = () => {
     if (!newReceiver.trim() || !newCategory.trim()) return;
 
     try {
-      await axios.post('http://localhost:8000/update-category/', {
+      await axios.post(`${API_BASE_URL}/update-category/`, {
         receiver: newReceiver.trim(),
         category: newCategory.trim()
       });
@@ -54,7 +55,7 @@ const CategoriesPage = () => {
 
   const handleDelete = async (receiver) => {
     try {
-      await axios.delete(`http://localhost:8000/categories/?receiver=${encodeURIComponent(receiver)}`);
+      await axios.delete(`${API_BASE_URL}/categories/?receiver=${encodeURIComponent(receiver)}`);
       setCategories(prev => {
         const copy = { ...prev };
         delete copy[receiver];
@@ -74,7 +75,7 @@ const CategoriesPage = () => {
   const handleSaveEdit = async (key) => {
     if (!editingVal.trim()) return;
     try {
-      await axios.post('http://localhost:8000/update-category/', {
+      await axios.post(`${API_BASE_URL}/update-category/`, {
         receiver: key,
         category: editingVal.trim()
       });

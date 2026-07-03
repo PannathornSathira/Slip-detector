@@ -18,6 +18,11 @@ try:
 except ImportError:
     OpenAI = None
 
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
 class Categorizer:
     def __init__(self, config_path="config/categories.json"):
         # Resolve path relative to this file to support running from anywhere
@@ -29,9 +34,10 @@ class Categorizer:
         if os.path.exists(dotenv_path):
             load_dotenv(dotenv_path)
             
-        self.llm_provider = os.getenv("LLM_PROVIDER", "").lower().strip()
+        self.llm_provider = os.getenv("LLM_PROVIDER", "local").lower().strip()
         self.gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
         self.openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        self.local_model = os.getenv("LOCAL_LLM_MODEL", "scb10x/llama3.1-typhoon2-8b-instruct")
         
         self.load_categories()
 
@@ -207,6 +213,29 @@ Return ONLY the category name from the list above. Do not include any punctuatio
                 logging.error(f"OpenAI API call failed: {e}")
                 return None
                 
+        elif self.llm_provider == "local" and self.local_model:
+            if ollama is None:
+                logging.error("ollama library is not installed.")
+                return None
+            try:
+                logging.info(f"Calling local Ollama API to categorize: {receiver_name}")
+                response = ollama.chat(
+                    model=self.local_model,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                )
+                category = response.get("message", {}).get("content", "").strip()
+                category = re.sub(r'[`"\']', '', category).strip()
+                
+                allowed_categories = ["Dining", "Groceries", "Transport", "Credit Card Settlement", "Personal Transfer", "Utilities", "General Expense"]
+                for allowed in allowed_categories:
+                    if category.lower() == allowed.lower():
+                        return allowed
+            except Exception as e:
+                logging.error(f"Local Ollama API call failed: {e}")
+                return None
+                
         return None
 
     def categorize(self, receiver_name):
@@ -216,7 +245,7 @@ Return ONLY the category name from the list above. Do not include any punctuatio
         # 1. Match receiver_name against known merchants (fuzzy search)
         if self.merchants:
             match, score = process.extractOne(receiver_name, self.merchants)
-            if score > 70:
+            if score > 85:
                 return self.categories[match]
                 
         # 2. Try Local Heuristics

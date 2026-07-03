@@ -3,6 +3,7 @@ import axios from 'axios';
 import UploadZone from '../components/UploadZone';
 import DataTable from '../components/DataTable';
 import { CheckCircle2, AlertTriangle, FileText, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const UploadPage = ({ data, setData }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -27,7 +28,7 @@ const UploadPage = ({ data, setData }) => {
       formData.append('files', file);
 
       try {
-        const response = await axios.post('http://localhost:8000/upload-slips/', formData, {
+        const response = await axios.post(`${API_BASE_URL}/upload-slips/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         
@@ -72,7 +73,7 @@ const UploadPage = ({ data, setData }) => {
 
   const handleUpdateCategory = async (receiver, category) => {
     try {
-      await axios.post('http://localhost:8000/update-category/', { receiver, category });
+      await axios.post(`${API_BASE_URL}/update-category/`, { receiver, category });
       
       // Update category for all transactions with the same receiver
       setData(prevData => prevData.map(item => 
